@@ -2,9 +2,18 @@ jmeter-functions
 ================
 
 * Simple JMeter reusable functions.
-** `RandomDate`
-** `RandomChoice`
-** `RandomLong`
-** `RandomInteger`
 
+
+
+Useful classes
+--------------
+* `RandomDate`
+* `RandomChoice`
+* `RandomLong`
+* `RandomInteger`
+
+
+
+How to use in JMeter
+--------------------
 
