@@ -1,9 +1,12 @@
 package com.javaclinic.jmeter.functions;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
+import java.time.DateTimeException;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Random;
@@ -24,14 +27,16 @@ import org.apache.log.Logger;
  *     __RandomDate(seconds)   - returns a random date in last x seconds
  *     __RandomDate(start,end) - returns a random date between start and end date
  *
+ * Requires Java 1.8
+ * 
  * @author nevenc
  *
  */
 public class RandomDate extends AbstractFunction {
-
+	
 	private static final String KEY = "__RandomDate";
-	private static final SimpleDateFormat FORMATTER = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
-	private static final SimpleDateFormat SIMPLE_FORMATTER = new SimpleDateFormat("yyyy-MM-dd");
+	private final String DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'";
+	private final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern(DATE_TIME_FORMAT);
 	private static final List<String> description = new LinkedList<String>();
 	private static final Logger log = LoggingManager.getLoggerForClass();
 	private static final Random random = new Random(System.currentTimeMillis());
@@ -40,7 +45,9 @@ public class RandomDate extends AbstractFunction {
 	private static final long ONE_YEAR_IN_SECONDS = 365*86400;
 
 	static {
+		description.add("Random date in last year, e.g. __RandomDate()");
 		description.add("Random date in last X seconds, e.g. __RandomDate(x)");
+		description.add("Random date between two dates, e.g. __RandomDate(2015-01-01,2015-12-31)");
 	}
 
 	public RandomDate() {
@@ -65,27 +72,27 @@ public class RandomDate extends AbstractFunction {
 	@Override
 	public String execute(SampleResult previousResult, Sampler currentSampler) throws InvalidVariableException {
 		long numberSeconds = ONE_YEAR_IN_SECONDS;
-		long randomTimestamp = System.currentTimeMillis();
-		Date randomDate = null;
+		long now = Instant.now().getEpochSecond();
+		LocalDateTime randomDate = null;
 		if ( values.length == 2) {
 			try {
 				String startValue = ((CompoundVariable) values[0]).execute();
 				String endValue = ((CompoundVariable) values[1]).execute();
-				long startDate = SIMPLE_FORMATTER.parse(startValue).getTime();
-				long endDate = SIMPLE_FORMATTER.parse(endValue).getTime();
-				randomTimestamp = startDate + ((long)((endDate-startDate)*random.nextDouble()));
-				randomDate = new Date(randomTimestamp);
+				long startDate = LocalDate.parse(startValue).toEpochDay();
+				long endDate = LocalDate.parse(endValue).toEpochDay();
+				long randomTimestamp = startDate + ((long)((endDate-startDate)*random.nextDouble()));
+				randomDate = LocalDateTime.ofEpochSecond(randomTimestamp,0,ZoneOffset.UTC);
 				log.debug(String.format("Random date between %s and %s is: %s", startValue, endValue, randomDate));
 				return FORMATTER.format(randomDate);
-			} catch (ParseException pe) {
-				log.info("Invalid date format, resorting to default - random date in last 365 days. Error:" + pe);
-				throw new InvalidVariableException(pe);
+			} catch (DateTimeException dte) {
+				log.info("Invalid date format, resorting to default - random date in last 365 days. Error:" + dte);
+				throw new InvalidVariableException(dte);
 			}
 		} else if ( values.length == 1) {
 			numberSeconds = Long.parseLong(((CompoundVariable) values[0]).execute());
 		}
 		long randomTimeInMilis = (long) (1000 * numberSeconds * random.nextDouble());
-		randomDate = new Date(System.currentTimeMillis() - randomTimeInMilis);
+		randomDate = LocalDateTime.ofEpochSecond(now - randomTimeInMilis, 0, ZoneOffset.UTC);
 		log.debug(String.format("Random date in last %d seconds: %s", numberSeconds, randomDate.toString()));
 		return FORMATTER.format(randomDate);
 	}
