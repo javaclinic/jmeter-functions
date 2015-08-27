@@ -91,7 +91,7 @@ public class RandomDate extends AbstractFunction {
 		} else if ( values.length == 1) {
 			numberSeconds = Long.parseLong(((CompoundVariable) values[0]).execute());
 		}
-		long randomTimeInMilis = (long) (1000 * numberSeconds * random.nextDouble());
+		long randomTimeInMilis = (long) (numberSeconds * random.nextDouble());
 		randomDate = LocalDateTime.ofEpochSecond(now - randomTimeInMilis, 0, ZoneOffset.UTC);
 		log.debug(String.format("Random date in last %d seconds: %s", numberSeconds, randomDate.toString()));
 		return FORMATTER.format(randomDate);
